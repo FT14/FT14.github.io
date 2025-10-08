@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1'/>
+  <title>Juego del Impostor - Fútbol</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f3f3f3;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .settings, .difficulty-selector {
+      margin-bottom: 20px;
+    }
+    input[type="number"], button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .card {
+      display: none;
+      font-size: 24px;
+      font-weight: bold;
+      padding: 40px;
+      margin: 20px auto;
+      border-radius: 10px;
+      background: white;
+      width: 280px;
+      min-height: 120px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .card small {
+        font-size: 16px;
+        font-weight: normal;
+        color: #555;
+        margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Juego del Impostor ⚽</h1>
+
+  <div class="settings">
+    <p>Elige la cantidad de jugadores:</p>
+    <input type="number" id="numPlayers" value="5" min="3" max="20">
+  </div>
+
+  <div class="difficulty-selector">
+    <p>Elige la dificultad:</p>
+    <label>
+      <input type="radio" name="difficulty" value="normal" checked> Normal
+    </label>
+    <label>
+      <input type="radio" name="difficulty" value="hard"> Difícil (pista para el impostor)
+    </label>
+  </div>
+
+  <button onclick="startGame()">Comenzar</button>
+
+  <div id="game">
+    <p id="instructions"></p>
+    <div id="card" class="card" onclick="nextPlayer()"></div>
+  </div>
+
+  <script>
+    let currentPlayer = 0;
+    let roles = [];
+    let gameMode = 'normal';
+    let pistaActual = '';
+
+    const jugadoresFamosos = [
+      { nombre: "Pelé", pista: "Leyenda de Brasil" },
+      { nombre: "Diego Maradona", pista: "Leyenda de Argentina" },
+      { nombre: "Johan Cruyff", pista: "Leyenda de Holanda" },
+      { nombre: "Alfredo Di Stéfano", pista: "Jugó en el Real Madrid" },
+      { nombre: "Franz Beckenbauer", pista: "Defensor alemán" },
+      { nombre: "Michel Platini", pista: "Ganó 3 Balones de Oro" },
+      { nombre: "Zinedine Zidane", pista: "Entrenador y ex-jugador francés" },
+      { nombre: "Ronaldo Nazário", pista: "Delantero brasileño, 'O Fenômeno'" },
+      { nombre: "Ronaldinho", pista: "Conocido por su 'Joga Bonito'" },
+      { nombre: "Thierry Henry", pista: "Leyenda del Arsenal FC" },
+      { nombre: "Paolo Maldini", pista: "Defensor italiano, leyenda del AC Milan" },
+      { nombre: "Cafu", pista: "Lateral derecho brasileño" },
+      { nombre: "Roberto Carlos", pista: "Lateral con un tiro muy potente" },
+      { nombre: "Fabio Cannavaro", pista: "Defensor italiano, Balón de Oro 2006" },
+      { nombre: "Iker Casillas", pista: "Arquero español, leyenda del Real Madrid" },
+      { nombre: "Gianluigi Buffon", pista: "Arquero italiano con una larga carrera" },
+      { nombre: "David Beckham", pista: "Experto en tiros libres de Inglaterra" },
+      { nombre: "Andrea Pirlo", pista: "Mediocampista italiano muy elegante" },
+      { nombre: "Kaká", pista: "Último brasileño en ganar el Balón de Oro" },
+      { nombre: "Juan Román Riquelme", pista: "Ídolo de Boca Juniors" },
+      { nombre: "Lionel Messi", pista: "Capitán de la Selección Argentina" },
+      { nombre: "Cristiano Ronaldo", pista: "Máximo goleador de Portugal" },
+      { nombre: "Neymar Jr.", pista: "Habilidoso delantero brasileño" },
+      { nombre: "Kylian Mbappé", pista: "Delantero francés muy veloz" },
+      { nombre: "Erling Haaland", pista: "Delantero noruego, goleador del Man. City" },
+      { nombre: "Luka Modrić", pista: "Mediocampista croata del Real Madrid" },
+      { nombre: "Kevin De Bruyne", pista: "Mediocampista belga del Man. City" },
+      { nombre: "Mohamed Salah", pista: "Delantero egipcio del Liverpool" },
+      { nombre: "Robert Lewandowski", pista: "Delantero polaco" },
+      { nombre: "Karim Benzema", pista: "Delantero francés, Balón de Oro 2022" },
+      { nombre: "Luis Suárez", pista: "Delantero uruguayo" },
+      { nombre: "Sergio Ramos", pista: "Defensor español muy goleador" },
+      { nombre: "Manuel Neuer", pista: "Arquero alemán, conocido por ser 'líbero'" },
+      { nombre: "Toni Kroos", pista: "Mediocampista alemán" },
+      { nombre: "Ángel Di María", pista: "Autor de goles en finales con Argentina" },
+      { nombre: "Antoine Griezmann", pista: "Delantero francés del Atlético Madrid" },
+      { nombre: "Harry Kane", pista: "Goleador histórico de Inglaterra" },
+      { nombre: "Virgil van Dijk", pista: "Defensor holandés del Liverpool" },
+      { nombre: "Alisson Becker", pista: "Arquero brasileño" },
+      { nombre: "Vinícius Jr.", pista: "Extremo brasileño del Real Madrid" },
+      { nombre: "Jude Bellingham", pista: "Mediocampista inglés del Real Madrid" },
+      { nombre: "Pedri", pista: "Mediocampista español del FC Barcelona" },
+      { nombre: "Julián Álvarez", pista: "Delantero argentino apodado 'La Araña'" },
+      { nombre: "Lautaro Martínez", pista: "Delantero argentino del Inter de Milán" },
+      { nombre: "Emiliano Martínez", pista: "Arquero argentino, 'El Dibu'" }
+    ];
+
+    function startGame() {
+      const numPlayersInput = document.getElementById("numPlayers");
+      const numPlayers = parseInt(numPlayersInput.value);
+      
+      if (numPlayers < 3 || numPlayers > 20) {
+        alert("El número de jugadores debe estar entre 3 y 20.");
+        return;
+      }
+      
+      const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+      numPlayersInput.disabled = true;
+      difficultyRadios.forEach(radio => radio.disabled = true);
+      document.querySelector("button").disabled = true;
+
+      gameMode = document.querySelector('input[name="difficulty"]:checked').value;
+
+      // Selecciona un jugador (objeto) al azar
+      const jugadorSeleccionado = jugadoresFamosos[Math.floor(Math.random() * jugadoresFamosos.length)];
+      const nombreDelJugador = jugadorSeleccionado.nombre;
+      pistaActual = jugadorSeleccionado.pista;
+
+      // Asigna roles
+      roles = Array(numPlayers).fill(nombreDelJugador);
+      const impostorIndex = Math.floor(Math.random() * numPlayers);
+      roles[impostorIndex] = "impostor";
+
+      currentPlayer = 0;
+      document.getElementById("instructions").textContent =
+        "Jugador 1: toca la carta para ver tu rol.";
+      const card = document.getElementById("card");
+      card.innerHTML = "Toca para ver";
+      card.style.display = "flex";
+    }
+
+    function nextPlayer() {
+      const card = document.getElementById("card");
+      const instructions = document.getElementById("instructions");
+
+      if (card.innerHTML === "Toca para ver") {
+        const currentRole = roles[currentPlayer];
+        if (currentRole === "impostor") {
+          let impostorMessage = "Eres el IMPOSTOR 🤫";
+          if (gameMode === 'hard') {
+            impostorMessage += `<br><small>Pista: ${pistaActual}</small>`;
+          }
+          card.innerHTML = impostorMessage;
+        } else {
+          card.innerHTML = `El jugador es:<br><strong>${currentRole}</strong>`;
+        }
+      } else {
+        currentPlayer++;
+        if (currentPlayer < roles.length) {
+          card.innerHTML = "Toca para ver";
+          instructions.textContent = `Jugador ${currentPlayer + 1}: toca la carta para ver tu rol.`;
+        } else {
+          instructions.textContent = "Todos han visto su rol. ¡Que comience la discusión para encontrar al impostor!";
+          card.style.display = "none";
+          
+          // Reactivar controles para un nuevo juego
+          document.getElementById("numPlayers").disabled = false;
+          document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
+          document.querySelector("button").disabled = false;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
